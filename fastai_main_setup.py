@@ -271,6 +271,9 @@ learn.save('x50-dcm-384-bs64ep2,2')
 fit_tune3(64, 384, 4, 3e-4)
 learn.save('x50-dcm-384-bs64--ep6')
 
+#@#@#@ train densenetmodel
+# do same as above
+
 # ===
 #---
 # Scale up to full submission
