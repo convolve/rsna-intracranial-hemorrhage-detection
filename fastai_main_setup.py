@@ -115,6 +115,33 @@ def do_fit(bs,sz,epochs,lr, freeze=True,epochs_frozen=1):
 # learn.save('initial-256-bs128ep2,5')
 # learn.lr_find()
 
+# #@# train on jpgs using xresnet50
+def get_learner_model(model):
+    dbch = get_data(128,128)
+    learn = cnn_learner(dbch, model, loss_func=loss_func, opt_func=opt_func, metrics=metrics)
+    return learn.to_fp16()
+
+learn=get_learner(xresenet50)
+do_fit(128, 96, 3, 2e-2)
+learn.save('x50-initial-96-bs128ep1,3')
+do_fit(128, 160, 4, 1e-3)
+learn.save('x50-initial-160-bs128ep1,4')
+do_fit(128, 256, 5, 1e-3, epochs_frozen=2)
+learn.save('x50-initial-256-bs128ep2,5')
+
+# #@# densenet121
+learn=get_learner_model(densenet121)
+# do_fit(128, 96, 3, 2e-2)
+# learn.save('d121-initial-96-bs128ep1,3')
+learn.load('d121-initial-96-bs128ep1,3')
+do_fit(128, 160, 4, 1e-3)
+learn.save('d121-initial-160-bs128ep1,4')
+do_fit(128, 256, 5, 1e-3, epochs_frozen=2)
+learn.save('d121-initial-256-bs128ep2,5')
+do_fit(128, 256, 3, 1e-3, freeze=False)
+learn.save('d121-initial-256-bs128--ep8')
+
+
 #=============================================================
 # train on full data
 
@@ -224,7 +251,27 @@ epoch     train_loss  valid_loss  accuracy_multi  accuracy_any  time
 epoch     train_loss  valid_loss  accuracy_multi  accuracy_any  time
 3         0.067134    0.077271    0.975314        0.952148          
 """
+# train 384 model at bs=32
+learn.load('dcm-384-bs64--ep4')
+fit_tune(32, 384, 1, 3e-4)
+learn.save('dcm-384-bs64--ep4-bs64ep1')
 
+learn.load('dcm-384-bs64--ep4-bs64ep1')
+fit_tune(32, 512, 1, 3e-4)
+
+
+
+#@#@#@ train x50 model
+fit_tune(64, 192, 3, (1e-3/3))
+learn.save('x50-dcm-192-bs64ep1,3')
+fit_tune(64, 256, 3, 3e-4, epochs_frozen=2)
+learn.save('x50-dcm-256-bs64ep2,3')
+fit_tune2(64, 384, 2, 3e-4, epochs_frozen=2)
+learn.save('x50-dcm-384-bs64ep2,2')
+fit_tune3(64, 384, 4, 3e-4)
+learn.save('x50-dcm-384-bs64--ep6')
+
+# ===
 #---
 # Scale up to full submission
 def get_learner_full():
@@ -233,22 +280,24 @@ def get_learner_full():
     return learn.to_fp16()
 learn = get_learner_full()
 
-learn.load('dcm-384-bs64--ep4')
-dbch = get_data(32, 512)
-lr=1e-4
-learn.dbunch = dbch
-learn.opt.clear_state()
-learn.unfreeze()
-learn.fit_one_cycle(1, slice(lr))
-learn.save('dcm-512-bs32--ep1')
-create_submission('512-ep1')
-learn.fit_one_cycle(1, slice(lr))
-learn.save('dcm-512-bs32--ep2')
-create_submission('512-ep2')
-learn.fit_one_cycle(1, slice(lr))
-learn.save('dcm-512-bs32--ep3')
-create_submission('512-ep3')
+#learn.load('dcm-384-bs64--ep4')
+#dbch = get_data(32, 512)
+#lr=1e-4
+#learn.dbunch = dbch
+#learn.opt.clear_state()
+#learn.unfreeze()
+#learn.fit_one_cycle(1, slice(lr))
+#learn.save('dcm-512-bs32--ep1')
+#create_submission('512-ep1')
+#learn.fit_one_cycle(1, slice(lr))
+#learn.save('dcm-512-bs32--ep2')
+#create_submission('512-ep2')
+#learn.fit_one_cycle(1, slice(lr))
+#learn.save('dcm-512-bs32--ep3')
+#create_submission('512-ep3')
 
+
+#====
 # use mixup and ensemble?
 from fastai2.vision.core import *
 
@@ -279,7 +328,7 @@ create_submission('384mixup-3')
 
 # ============================
 # ## Prepare for submission
-def create_submission(id, bs=32, sz=512)
+def create_submission(id, bs=32, sz=512):
     test_fns = [(path_tst/f'{filename(o)}.dcm').absolute() for o in df_tst.fname.values]
     #print(len(test_fns) * 6)
     dbch = get_data(bs, sz) # size used for trained model
