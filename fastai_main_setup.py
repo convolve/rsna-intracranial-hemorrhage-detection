@@ -138,6 +138,8 @@ do_fit(128, 160, 4, 1e-3)
 learn.save('d121-initial-160-bs128ep1,4')
 do_fit(128, 256, 5, 1e-3, epochs_frozen=2)
 learn.save('d121-initial-256-bs128ep2,5')
+do_fit(128, 256, 3, 1e-3, freeze=False)
+learn.save('d121-initial-256-bs128--ep8')
 
 
 #=============================================================
